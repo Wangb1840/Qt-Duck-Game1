@@ -25,6 +25,7 @@ GameWidget::GameWidget(QWidget *parent)
     setFixedSize(GAME_WIDTH, GAME_HEIGHT);
     setWindowTitle("酱板鸭快跑 - 逃跑吧！美味的鸭子！");
     setStyleSheet("QWidget { background-color: #87CEEB; }");
+    setFocusPolicy(Qt::StrongFocus);
 
     QFont titleFont("Microsoft YaHei", 24, QFont::Bold);
     QFont normalFont("Microsoft YaHei", 14);
@@ -51,9 +52,9 @@ GameWidget::GameWidget(QWidget *parent)
 
     gameOverLabel = new QLabel(this);
     gameOverLabel->setFont(titleFont);
-    gameOverLabel->setStyleSheet("QLabel { color: #FF4444; background-color: rgba(0,0,0,150); border-radius: 15px; padding: 20px 40px; }");
+    gameOverLabel->setStyleSheet("QLabel { color: #FF4444; background-color: rgba(0,0,0,150); border-radius: 15px; padding: 30px 50px; }");
     gameOverLabel->setAlignment(Qt::AlignCenter);
-    gameOverLabel->setText("游戏结束！\n酱板鸭被抓到了！\n\n\"我就知道这只鸭子跑不掉！\"");
+    gameOverLabel->setText(QString::fromUtf8("游戏结束！\n\n你是那只酱板鸭？\n\n\"我就知道这只鸭子跑不掉！\""));
     gameOverLabel->hide();
 
     tipLabel = new QLabel(this);
@@ -63,18 +64,18 @@ GameWidget::GameWidget(QWidget *parent)
     tipLabel->setText("空格键=跳跃 | 右键=冲刺 | 逃跑吧酱板鸭！");
     tipLabel->setGeometry(width()/2 - 150, height() - 60, 300, 30);
 
-    startButton = new QPushButton("开始游戏", this);
+    startButton = new QPushButton(QString::fromUtf8("开始游戏"), this);
     startButton->setFont(titleFont);
-    startButton->setStyleSheet("QPushButton { background-color: #FF6B35; color: white; border-radius: 15px; padding: 15px 50px; border: 3px solid #FF8C55; }"
+    startButton->setStyleSheet("QPushButton { background-color: #FF6B35; color: white; border-radius: 15px; padding: 20px 50px; border: 3px solid #FF8C55; text-align: center; min-height: 80px; }"
                                "QPushButton:hover { background-color: #FF8C55; }");
-    startButton->setGeometry(width()/2 - 100, height()/2 - 40, 200, 80);
+    startButton->setGeometry(width()/2 - 120, height()/2, 240, 80);
     connect(startButton, &QPushButton::clicked, this, &GameWidget::onStartGame);
 
-    restartButton = new QPushButton("重新开始", this);
+    restartButton = new QPushButton(QString::fromUtf8("重新开始"), this);
     restartButton->setFont(titleFont);
-    restartButton->setStyleSheet("QPushButton { background-color: #4CAF50; color: white; border-radius: 15px; padding: 15px 50px; border: 3px solid #66BB6A; }"
+    restartButton->setStyleSheet("QPushButton { background-color: #4CAF50; color: white; border-radius: 15px; padding: 20px 40px; border: 3px solid #66BB6A; text-align: center; min-height: 70px; }"
                                  "QPushButton:hover { background-color: #66BB6A; }");
-    restartButton->setGeometry(width()/2 - 100, height()/2 + 100, 200, 80);
+    restartButton->setGeometry(width()/2 - 120, height()/2 + 120, 240, 70);
     restartButton->hide();
     connect(restartButton, &QPushButton::clicked, this, &GameWidget::onRestartGame);
 
@@ -111,7 +112,8 @@ void GameWidget::initGame()
     bgOffset1 = 0;
     bgOffset2 = GAME_WIDTH;
 
-    player->setGeometry(100, height() - GROUND_HEIGHT - 80, 80, 80);
+    int playerY = height() - GROUND_HEIGHT - 80;
+    player->move(100, playerY);
     player->stopRunning();
     player->setDashing(false);
     player->update();
@@ -185,7 +187,10 @@ void GameWidget::generateObstacle()
     static int generateCounter = 0;
     generateCounter++;
 
-    if (generateCounter >= 60) {
+    int minInterval = qMax(30, 60 - score / 50);
+    int interval = minInterval + QRandomGenerator::global()->bounded(minInterval / 2 + 1);
+
+    if (generateCounter >= interval) {
         generateCounter = 0;
 
         int type = QRandomGenerator::global()->bounded(3);
@@ -195,19 +200,19 @@ void GameWidget::generateObstacle()
 
         switch (type) {
         case 0:
-            obs->setObstacleType(Obstacle::Type_Barrier);
-            obs->setFixedSize(50, 60);
-            obs->move(width() + 50, groundY - 60);
+            obs->setObstacleType(Type_Barrier);
+            obs->setFixedSize(160, 160);
+            obs->setPosition(width() + 50, groundY - 160);
             break;
         case 1:
-            obs->setObstacleType(Obstacle::Type_Flying);
-            obs->setFixedSize(50, 40);
-            obs->move(width() + 50, groundY - 120 - QRandomGenerator::global()->bounded(50));
+            obs->setObstacleType(Type_Flying);
+            obs->setFixedSize(160, 160);
+            obs->setPosition(width() + 50, groundY - 160);
             break;
         case 2:
-            obs->setObstacleType(Obstacle::Type_Ground);
-            obs->setFixedSize(55, 35);
-            obs->move(width() + 50, groundY - 35);
+            obs->setObstacleType(Type_Ground);
+            obs->setFixedSize(160, 160);
+            obs->setPosition(width() + 50, groundY - 160);
             break;
         }
 
@@ -238,7 +243,7 @@ void GameWidget::updateScore()
     score += 1;
     scoreLabel->setText(QString("分数: %1").arg(score));
 
-    if (score % 100 == 0 && gameSpeed < 15) {
+    if (score % 50 == 0 && gameSpeed < 18) {
         gameSpeed += 1;
     }
 }
@@ -260,14 +265,13 @@ void GameWidget::gameOver()
                         << "我就知道这只鸭子跑不掉！"
                         << "酱板鸭：终究还是被抓住了..."
                         << "逃跑失败！明天就上桌！"
-                        << "这鸭子跑得还挺快，可惜没用！"
-                        << "抓到了！今晚加菜！";
+                        << "这鸭子跑得还挺快，可惜没用！";
 
-    gameOverLabel->setText(QString("游戏结束！\n酱板鸭被抓到了！\n\n%1\n\n最终得分: %2").arg(memes[QRandomGenerator::global()->bounded(memes.size())]).arg(score));
-    gameOverLabel->move(width()/2 - 200, height()/2 - 120);
+    gameOverLabel->setText(QString::fromUtf8("游戏结束！\n\n你是那只酱板鸭？\n\n%1\n\n最终得分: %2").arg(memes[QRandomGenerator::global()->bounded(memes.size())]).arg(score));
+    gameOverLabel->move(width()/2 - 220, height()/2 - 150);
     gameOverLabel->show();
 
-    restartButton->move(width()/2 - 100, height()/2 + 80);
+    restartButton->move(width()/2 - 120, height()/2 + 120);
     restartButton->show();
 }
 
@@ -285,41 +289,41 @@ void GameWidget::onDashCooldown()
     }
 }
 
-void GameWidget::keyPressEvent(QKeyEvent *event)
+bool GameWidget::event(QEvent *event)
 {
-    if (event->key() == Qt::Key_Space) {
-        if (isGameRunning && !isGameOver) {
-            player->jump();
+    if (event->type() == QEvent::KeyPress) {
+        QKeyEvent *keyEvent = static_cast<QKeyEvent*>(event);
+        if (keyEvent->key() == Qt::Key_Space) {
+            if (isGameRunning && !isGameOver) {
+                player->jump();
+            }
+            event->accept();
+            return true;
         }
-        event->accept();
-    } else {
-        QWidget::keyPressEvent(event);
     }
-}
+    if (event->type() == QEvent::MouseButtonPress) {
+        QMouseEvent *mouseEvent = static_cast<QMouseEvent*>(event);
+        if (mouseEvent->button() == Qt::RightButton) {
+            if (isGameRunning && !isGameOver) {
+                player->setDashing(true);
+                dashLabel->setText("冲刺中！");
+                dashLabel->setStyleSheet("QLabel { color: #FF6600; background-color: rgba(0,0,0,100); border-radius: 8px; padding: 3px 10px; }");
 
-void GameWidget::mousePressEvent(QMouseEvent *event)
-{
-    if (event->button() == Qt::RightButton) {
-        if (isGameRunning && !isGameOver && canDash) {
-            player->setDashing(true);
-            canDash = false;
-            dashCooldown = DASH_COOLDOWN_TIME;
-            dashLabel->setText(QString("冲刺: %1秒").arg(dashCooldown / 1000));
-            dashLabel->setStyleSheet("QLabel { color: #FF6600; background-color: rgba(0,0,0,100); border-radius: 8px; padding: 3px 10px; }");
-            dashCooldownTimer->start(100);
-
-            QTimer *dashEndTimer = new QTimer(this);
-            dashEndTimer->setSingleShot(true);
-            connect(dashEndTimer, &QTimer::timeout, this, [this, dashEndTimer]() {
-                player->setDashing(false);
-                dashEndTimer->deleteLater();
-            });
-            dashEndTimer->start(500);
+                QTimer *dashEndTimer = new QTimer(this);
+                dashEndTimer->setSingleShot(true);
+                connect(dashEndTimer, &QTimer::timeout, this, [this, dashEndTimer]() {
+                    player->setDashing(false);
+                    dashLabel->setText("冲刺: 就绪！");
+                    dashLabel->setStyleSheet("QLabel { color: #00FF00; background-color: rgba(0,0,0,100); border-radius: 8px; padding: 3px 10px; }");
+                    dashEndTimer->deleteLater();
+                });
+                dashEndTimer->start(500);
+            }
+            event->accept();
+            return true;
         }
-        event->accept();
-    } else {
-        QWidget::mousePressEvent(event);
     }
+    return QWidget::event(event);
 }
 
 void GameWidget::paintEvent(QPaintEvent *event)
@@ -330,9 +334,26 @@ void GameWidget::paintEvent(QPaintEvent *event)
     drawBackground(painter);
     drawGround(painter);
 
-    foreach (Obstacle *obs, obstacles) {
-        obs->raise();
+    static QImage obstacleImage;
+    static bool obstacleLoaded = false;
+    if (!obstacleLoaded) {
+        bool loaded = obstacleImage.load(":/images/baihu.jpg");
+        if (loaded && !obstacleImage.isNull()) {
+            obstacleImage = obstacleImage.scaled(160, 160, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        } else {
+            qDebug() << "Error: Failed to load obstacle image: :/images/baihu.jpg";
+            obstacleImage = QImage(160, 160, QImage::Format_ARGB32);
+            obstacleImage.fill(Qt::red);
+        }
+        obstacleLoaded = true;
     }
+
+    foreach (Obstacle *obs, obstacles) {
+        int offsetX = (obs->width() - obstacleImage.width()) / 2;
+        int offsetY = obs->height() - obstacleImage.height();
+        painter.drawImage(obs->x() + offsetX, obs->y() + offsetY, obstacleImage);
+    }
+
     player->raise();
 
     QWidget::paintEvent(event);
@@ -340,77 +361,45 @@ void GameWidget::paintEvent(QPaintEvent *event)
 
 void GameWidget::drawBackground(QPainter &painter)
 {
-    QLinearGradient gradient(0, 0, 0, height());
-    gradient.setColorAt(0, QColor(135, 206, 235));
-    gradient.setColorAt(0.7, QColor(255, 218, 185));
-    gradient.setColorAt(1, QColor(210, 180, 140));
-    painter.fillRect(0, 0, width(), height(), gradient);
+    static QImage bgImage;
+    static bool bgLoaded = false;
 
-    painter.setBrush(QBrush(QColor(180, 220, 180)));
-    painter.setPen(Qt::NoPen);
-    QPainterPath hillPath1;
-    hillPath1.moveTo(bgOffset1, height() - GROUND_HEIGHT);
-    hillPath1.quadTo(bgOffset1 + 200, height() - GROUND_HEIGHT - 150, bgOffset1 + 400, height() - GROUND_HEIGHT);
-    hillPath1.closeSubpath();
-    painter.drawPath(hillPath1);
+    if (!bgLoaded) {
+        bool loaded = bgImage.load(":/images/xueshan.png");
+        if (loaded) {
+            bgImage = bgImage.scaled(width() * 2, height(), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+        } else {
+            bgImage = QImage(width() * 2, height(), QImage::Format_ARGB32);
+            QPainter p(&bgImage);
+            QLinearGradient gradient(0, 0, 0, height());
+            gradient.setColorAt(0, QColor(135, 206, 235));
+            gradient.setColorAt(0.5, QColor(255, 255, 255));
+            gradient.setColorAt(1, QColor(200, 220, 255));
+            p.fillRect(0, 0, width() * 2, height(), gradient);
 
-    QPainterPath hillPath2;
-    hillPath2.moveTo(bgOffset2, height() - GROUND_HEIGHT);
-    hillPath2.quadTo(bgOffset2 + 200, height() - GROUND_HEIGHT - 120, bgOffset2 + 400, height() - GROUND_HEIGHT);
-    hillPath2.closeSubpath();
-    painter.drawPath(hillPath2);
+            p.setBrush(QBrush(QColor(255, 255, 255, 200)));
+            p.setPen(Qt::NoPen);
+            for (int j = 0; j < 2; j++) {
+                int offsetX = j * width();
+                for (int i = 0; i < 5; i++) {
+                    int x = 100 + i * 180 + offsetX;
+                    int y = 50 + (i % 3) * 40;
+                    p.drawEllipse(x, y, 60, 40);
+                    p.drawEllipse(x + 20, y - 10, 50, 35);
+                    p.drawEllipse(x + 40, y, 55, 38);
+                }
+            }
+        }
+        bgLoaded = true;
+    }
 
-    painter.setBrush(QBrush(QColor(100, 180, 100)));
-    QPainterPath cloudPath1;
-    cloudPath1.moveTo((bgOffset1 + 100) % (GAME_WIDTH * 2), 80);
-    cloudPath1.addEllipse((bgOffset1 + 100) % (GAME_WIDTH * 2), 70, 60, 40);
-    cloudPath1.addEllipse((bgOffset1 + 130) % (GAME_WIDTH * 2), 60, 50, 35);
-    cloudPath1.addEllipse((bgOffset1 + 160) % (GAME_WIDTH * 2), 70, 55, 38);
-    painter.drawPath(cloudPath1);
-
-    QPainterPath cloudPath2;
-    cloudPath2.moveTo((bgOffset2 + 300) % (GAME_WIDTH * 2), 120);
-    cloudPath2.addEllipse((bgOffset2 + 300) % (GAME_WIDTH * 2), 110, 50, 35);
-    cloudPath2.addEllipse((bgOffset2 + 330) % (GAME_WIDTH * 2), 100, 45, 30);
-    cloudPath2.addEllipse((bgOffset2 + 360) % (GAME_WIDTH * 2), 110, 48, 33);
-    painter.drawPath(cloudPath2);
+    painter.drawImage(bgOffset1, 0, bgImage);
+    painter.drawImage(bgOffset1 + width(), 0, bgImage);
+    painter.drawImage(bgOffset2, 0, bgImage);
+    painter.drawImage(bgOffset2 + width(), 0, bgImage);
 }
 
 void GameWidget::drawGround(QPainter &painter)
 {
-    int groundY = height() - GROUND_HEIGHT;
-
-    painter.setBrush(QBrush(QColor(139, 90, 43)));
-    painter.setPen(Qt::NoPen);
-    painter.drawRect(0, groundY, width(), GROUND_HEIGHT);
-
-    painter.setBrush(QBrush(QColor(160, 110, 50)));
-    for (int i = 0; i < width() + 50; i += 50) {
-        int x = (i + groundOffset) % (width() + 50) - 25;
-        painter.drawRect(x, groundY, 48, 5);
-    }
-
-    painter.setBrush(QBrush(QColor(34, 139, 34)));
-    painter.drawRect(0, groundY, width(), 15);
-
-    painter.setBrush(QBrush(QColor(50, 180, 50)));
-    for (int i = 0; i < width() + 30; i += 30) {
-        int x = (i + groundOffset * 2) % (width() + 30) - 15;
-        static const QPoint grassPoints1[] = {
-            QPoint(0, groundY), QPoint(5, groundY - 15), QPoint(10, groundY)
-    };
-    static const QPoint grassPoints2[] = {
-        QPoint(10, groundY), QPoint(15, groundY - 12), QPoint(20, groundY)
-};
-static const QPoint grassPoints3[] = {
-    QPoint(20, groundY), QPoint(25, groundY - 18), QPoint(30, groundY)
-};
-
-painter.save();
-painter.translate(x, groundY);
-painter.drawPolygon(grassPoints1, 3);
-painter.drawPolygon(grassPoints2, 3);
-painter.drawPolygon(grassPoints3, 3);
-painter.restore();
-}
+    Q_UNUSED(painter);
 }

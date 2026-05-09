@@ -1,12 +1,15 @@
 #include "player.h"
 #include <QDebug>
+#include <QImage>
 
 Player::Player(QWidget *parent)
     : QWidget(parent)
+    , playerImage()
+    , dashImage()
     , isJumping(false)
     , isRunning(false)
     , isDashingState(false)
-    , jumpHeight(0)
+    , jumpVelocity(0.0)
     , groundY(0)
     , currentY(0)
     , frameIndex(0)
@@ -14,6 +17,32 @@ Player::Player(QWidget *parent)
 {
     setFixedSize(PLAYER_WIDTH, PLAYER_HEIGHT);
     setAttribute(Qt::WA_TranslucentBackground);
+
+    bool loaded = playerImage.load(":/images/jiangbanya.jpg");
+    if (loaded && !playerImage.isNull()) {
+        playerImage = playerImage.scaled(PLAYER_WIDTH, PLAYER_HEIGHT, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    } else {
+        playerImage = QImage(PLAYER_WIDTH, PLAYER_HEIGHT, QImage::Format_ARGB32);
+        playerImage.fill(Qt::transparent);
+        QPainter p(&playerImage);
+        p.setBrush(QBrush(QColor(255, 100, 100)));
+        p.setPen(QPen(QColor(200, 50, 50), 2));
+        p.drawEllipse(10, 15, 60, 50);
+
+        p.setBrush(QBrush(QColor(255, 150, 100)));
+        p.drawEllipse(25, 10, 15, 20);
+        p.drawEllipse(45, 10, 15, 20);
+
+        p.setBrush(Qt::white);
+        p.drawEllipse(28, 30, 10, 10);
+        p.drawEllipse(44, 30, 10, 10);
+        p.setBrush(Qt::black);
+        p.drawEllipse(31, 33, 4, 4);
+        p.drawEllipse(47, 33, 4, 4);
+
+        p.setBrush(QBrush(QColor(255, 180, 50)));
+        p.drawEllipse(38, 40, 8, 6);
+    }
 }
 
 Player::~Player()
@@ -24,7 +53,7 @@ void Player::jump()
 {
     if (!isJumping && isRunning) {
         isJumping = true;
-        jumpHeight = JUMP_SPEED;
+        jumpVelocity = JUMP_FORCE;
     }
 }
 
@@ -62,103 +91,29 @@ void Player::paintEvent(QPaintEvent *event)
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
 
-    groundY = parentWidget()->height() - 100;
-    if (!isJumping) {
+    if (groundY == 0) {
+        groundY = (parentWidget() ? parentWidget()->height() : this->height()) - 100;
         currentY = groundY - PLAYER_HEIGHT;
+        move(x(), currentY);
     }
 
     if (isJumping) {
-        currentY -= jumpHeight;
-        jumpHeight -= GRAVITY;
+        currentY -= (int)jumpVelocity;
+        jumpVelocity -= GRAVITY;
         if (currentY >= groundY - PLAYER_HEIGHT) {
             currentY = groundY - PLAYER_HEIGHT;
             isJumping = false;
-            jumpHeight = 0;
+            jumpVelocity = 0.0;
         }
+        move(x(), currentY);
     }
 
-    int drawY = currentY;
-    if (isJumping) {
-        painter.save();
-        painter.translate(0, drawY);
-    }
+    painter.drawImage(0, 0, playerImage);
 
     if (isDashingState) {
-        painter.setBrush(QBrush(QColor(255, 100, 100)));
-        painter.setPen(QPen(QColor(200, 50, 50), 3));
-    } else {
-        painter.setBrush(QBrush(QColor(255, 200, 100)));
-        painter.setPen(QPen(QColor(200, 150, 50), 3));
-    }
-    painter.drawEllipse(15, 20, 50, 45);
-
-    painter.setBrush(QBrush(QColor(255, 220, 120)));
-    painter.setPen(Qt::NoPen);
-    painter.drawEllipse(20, 25, 40, 35);
-
-    if (isDashingState) {
-        painter.setBrush(QBrush(QColor(255, 50, 50)));
-    } else {
-        painter.setBrush(QBrush(QColor(100, 100, 100)));
-    }
-    painter.drawEllipse(25, 30, 12, 12);
-    painter.drawEllipse(43, 30, 12, 12);
-
-    QPoint eyeWhite1(28, 33);
-    QPoint eyeWhite2(46, 33);
-    painter.setBrush(Qt::white);
-    painter.drawEllipse(eyeWhite1, 5, 5);
-    painter.drawEllipse(eyeWhite2, 5, 5);
-
-    if (isDashingState) {
-        painter.setBrush(Qt::red);
-    } else {
-        painter.setBrush(Qt::black);
-    }
-    painter.drawEllipse(29, 34, 3, 3);
-    painter.drawEllipse(47, 34, 3, 3);
-
-    QPoint beak1(38, 40);
-    QPoint beak2(48, 40);
-    QPoint beak3(43, 47);
-    QPolygon beak;
-    beak << beak1 << beak2 << beak3;
-    painter.setBrush(QBrush(QColor(255, 150, 50)));
-    painter.setPen(QPen(QColor(200, 100, 30), 1));
-    painter.drawPolygon(beak);
-
-    painter.setBrush(QBrush(QColor(255, 200, 100)));
-    painter.setPen(QPen(QColor(200, 150, 50), 2));
-
-    if (isDashingState) {
-        frameTimer++;
-        if (frameTimer >= 3) {
-            frameTimer = 0;
-            frameIndex = (frameIndex + 1) % 2;
-        }
-        int legOffset = frameIndex == 0 ? 0 : 5;
-        painter.drawLine(30, 60, 25 - legOffset, 75);
-        painter.drawLine(50, 60, 55 + legOffset, 75);
-    } else {
-        painter.drawLine(30, 60, 25, 75);
-        painter.drawLine(50, 60, 55, 75);
-    }
-
-    if (isDashingState) {
-        painter.setBrush(QBrush(QColor(100, 200, 255, 150)));
+        painter.setBrush(QBrush(QColor(255, 100, 100, 150)));
         for (int i = 0; i < 3; i++) {
             painter.drawEllipse(70 + i * 15, 35 + i * 5, 20 - i * 5, 15 - i * 3);
         }
-    }
-
-    if (isDashingState) {
-        painter.restore();
-    }
-
-    if (isJumping) {
-        painter.setPen(QPen(QColor(150, 150, 150, 100), 2, Qt::DashLine));
-        painter.drawLine(40, groundY, 40, groundY + 10);
-        painter.drawLine(40, groundY + 10, 20, groundY + 10);
-        painter.drawLine(40, groundY + 10, 60, groundY + 10);
     }
 }

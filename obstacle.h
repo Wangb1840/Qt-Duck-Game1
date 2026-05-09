@@ -5,6 +5,13 @@
 #include <QPainter>
 #include <QRect>
 #include <QTimer>
+#include <QImage>
+
+enum ObstacleType {
+    Type_Barrier,
+    Type_Flying,
+    Type_Ground
+};
 
 class Obstacle : public QWidget
 {
@@ -14,18 +21,16 @@ public:
     explicit Obstacle(QWidget *parent = nullptr);
     ~Obstacle();
 
-    void setSpeed(int speed);
+    void setSpeed(int newSpeed);
     int getSpeed() const;
+
     void moveLeft();
     QRect getCollisionRect() const;
-    void reset();
 
-    enum ObstacleType {
-        Type_Barrier,
-        Type_Flying,
-        Type_Ground
-    };
+    void reset();
     void setObstacleType(ObstacleType type);
+
+    void setPosition(int x, int y);
 
 protected:
     void paintEvent(QPaintEvent *event) override;
@@ -36,6 +41,8 @@ private:
     ObstacleType currentType;
     int animationFrame;
     QTimer *animTimer;
+    QImage obstacleImage;
 };
 
 #endif
+

@@ -21,4 +21,8 @@ HEADERS += \
     obstacle.h
 
 RESOURCES += \
+    resources.qrc \
     resources.qrc
+
+DISTFILES += \
+    images/baihu.jpg.jpg

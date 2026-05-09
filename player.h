@@ -31,13 +31,13 @@ private:
     bool isJumping;
     bool isRunning;
     bool isDashingState;
-    int jumpHeight;
+    double jumpVelocity;
     int groundY;
     int currentY;
     int frameIndex;
     int frameTimer;
-    static const int JUMP_SPEED = 15;
-    static const int GRAVITY = 1;
+    static constexpr double JUMP_FORCE = 7.0;
+    static constexpr double GRAVITY = 0.09;
     static const int PLAYER_WIDTH = 80;
     static const int PLAYER_HEIGHT = 80;
 };
