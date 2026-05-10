@@ -37,7 +37,7 @@ private:
     int frameIndex;
     int frameTimer;
     static constexpr double JUMP_FORCE = 7.0;
-    static constexpr double GRAVITY = 0.09;
+    static constexpr double GRAVITY = 0.06;
     static const int PLAYER_WIDTH = 80;
     static const int PLAYER_HEIGHT = 80;
 };

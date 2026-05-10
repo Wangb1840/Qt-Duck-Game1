@@ -83,7 +83,7 @@ QRect Player::getCollisionRect() const
     if (!isJumping) {
         y = groundY - PLAYER_HEIGHT;
     }
-    return QRect(10, y + 15, PLAYER_WIDTH - 20, PLAYER_HEIGHT - 25);
+    return QRect(x() + 5, y + 10, PLAYER_WIDTH - 10, PLAYER_HEIGHT - 15);
 }
 
 void Player::paintEvent(QPaintEvent *event)

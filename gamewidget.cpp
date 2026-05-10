@@ -36,13 +36,13 @@ GameWidget::GameWidget(QWidget *parent)
     scoreLabel->setFont(scoreFont);
     scoreLabel->setStyleSheet("QLabel { color: #FFFFFF; background-color: rgba(0,0,0,100); border-radius: 10px; padding: 5px 15px; }");
     scoreLabel->setText("分数: 0");
-    scoreLabel->setGeometry(20, 20, 150, 40);
+    scoreLabel->setGeometry(20, 20, 220, 40);
 
     highScoreLabel = new QLabel(this);
     highScoreLabel->setFont(normalFont);
     highScoreLabel->setStyleSheet("QLabel { color: #FFD700; background-color: rgba(0,0,0,100); border-radius: 8px; padding: 3px 10px; }");
     highScoreLabel->setText("最高分: 0");
-    highScoreLabel->setGeometry(20, 65, 120, 30);
+    highScoreLabel->setGeometry(20, 65, 200, 30);
 
     dashLabel = new QLabel(this);
     dashLabel->setFont(normalFont);
@@ -162,7 +162,7 @@ void GameWidget::onGameUpdate()
         obs->setSpeed(currentSpeed);
         obs->moveLeft();
 
-        if (obs->x() < -100) {
+        if (obs->x() < -200) {
             obs->reset();
         }
     }
@@ -187,38 +187,64 @@ void GameWidget::generateObstacle()
     static int generateCounter = 0;
     generateCounter++;
 
-    int minInterval = qMax(30, 60 - score / 50);
+    const int MIN_SAFE_GAP = 240;
+    const int DOUBLE_OBSTACLE_GAP = 200;
+
+    double difficultyFactor = 1.0 + score / 1500.0;
+    int baseInterval = 52;
+    int minInterval = qMax(28, baseInterval - (int)(score / 120));
     int interval = minInterval + QRandomGenerator::global()->bounded(minInterval / 2 + 1);
 
     if (generateCounter >= interval) {
         generateCounter = 0;
 
-        int type = QRandomGenerator::global()->bounded(3);
-        Obstacle *obs = new Obstacle(this);
-
         int groundY = height() - GROUND_HEIGHT;
+        int startX = width() + 80;
+        bool canGenerate = true;
 
-        switch (type) {
-        case 0:
-            obs->setObstacleType(Type_Barrier);
-            obs->setFixedSize(160, 160);
-            obs->setPosition(width() + 50, groundY - 160);
-            break;
-        case 1:
-            obs->setObstacleType(Type_Flying);
-            obs->setFixedSize(160, 160);
-            obs->setPosition(width() + 50, groundY - 160);
-            break;
-        case 2:
-            obs->setObstacleType(Type_Ground);
-            obs->setFixedSize(160, 160);
-            obs->setPosition(width() + 50, groundY - 160);
-            break;
+        foreach (Obstacle *obs, obstacles) {
+            int obsRightEdge = obs->x() + obs->width();
+            int gap = startX - obsRightEdge;
+
+            if (gap < MIN_SAFE_GAP && obs->x() < width() + 350) {
+                canGenerate = false;
+                break;
+            }
         }
 
-        obs->setSpeed(gameSpeed);
-        obstacles.append(obs);
-        obs->show();
+        if (canGenerate) {
+            Obstacle *obs1 = new Obstacle(this);
+            obs1->setFixedSize(160, 160);
+            obs1->setPosition(startX, groundY - 160);
+            obs1->setSpeed(gameSpeed * difficultyFactor);
+            obstacles.append(obs1);
+            obs1->show();
+
+            if (QRandomGenerator::global()->bounded(4) == 0 && score > 250) {
+                int secondObsX = startX + 160 + DOUBLE_OBSTACLE_GAP;
+                bool canGenerateSecond = true;
+
+                foreach (Obstacle *obs, obstacles) {
+                    if (obs == obs1) continue;
+                    int obsRightEdge = obs->x() + obs->width();
+                    int gap = secondObsX - obsRightEdge;
+
+                    if (gap < MIN_SAFE_GAP && obs->x() < width() + 450) {
+                        canGenerateSecond = false;
+                        break;
+                    }
+                }
+
+                if (canGenerateSecond) {
+                    Obstacle *obs2 = new Obstacle(this);
+                    obs2->setFixedSize(160, 160);
+                    obs2->setPosition(secondObsX, groundY - 160);
+                    obs2->setSpeed(gameSpeed * difficultyFactor);
+                    obstacles.append(obs2);
+                    obs2->show();
+                }
+            }
+        }
     }
 }
 

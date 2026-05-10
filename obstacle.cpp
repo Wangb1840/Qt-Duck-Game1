@@ -32,7 +32,22 @@ void Obstacle::moveLeft()
 
 QRect Obstacle::getCollisionRect() const
 {
-    return QRect(currentX + 20, y() + 20, width() - 40, height() - 40);
+    static QImage obstacleImage;
+    static bool loaded = false;
+    if (!loaded) {
+        obstacleImage.load(":/images/baihu.jpg");
+        if (!obstacleImage.isNull()) {
+            obstacleImage = obstacleImage.scaled(160, 160, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        }
+        loaded = true;
+    }
+
+    int imgWidth = obstacleImage.width();
+    int imgHeight = obstacleImage.height();
+    int offsetX = (width() - imgWidth) / 2;
+    int offsetY = height() - imgHeight;
+
+    return QRect(currentX + offsetX, y() + offsetY, imgWidth, imgHeight);
 }
 
 void Obstacle::reset()
